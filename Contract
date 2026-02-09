@@ -1,93 +1,100 @@
 // SPDX-License-Identifier: GPL-3.0
 
 //1
-// License and Solidity version
+// License declaration and Solidity version
 pragma solidity ^0.6.6; 
 //1
 
 //2
-// ERC-20 interface defines the required functions
-// This ensures the token can interact with wallets and other contracts
+// ERC-20 interface defines the standard functions and events for token interaction
+// Ensures compatibility with wallets and other smart contracts
 interface ERC20Interface {
-    // Define total token supply
+    // Returns the total number of tokens in existence
     function totalSupply() external view returns (uint256); 
-    // Account balances
+
+    // Returns the balance of a specific account
     function balanceOf(address account) external view returns (uint256); 
-    // Spending allowances
+
+    // Returns the number of tokens that an owner allowed a spender
     function allowance(address owner, address spender) external view returns (uint256); 
-    // Direct token transfer
+
+    // Transfers tokens from the sender to another address
     function transfer(address recipient, uint256 amount) external returns (bool); 
-    // Approve a spender to spend tokens
+
+    // Approves a spender to spend a specified amount on behalf of the sender
     function approve(address spender, uint256 amount) external returns (bool); 
-    // Transfer tokens on behalf of another address
+
+    // Transfers tokens from one address to another using allowance
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool); 
 
-    // Events allow transactions to be tracked on Etherscan
+    // Events allow tracking of transactions on Etherscan or other explorers
     event Transfer(address indexed from, address indexed to, uint256 value); 
     event Approval(address indexed owner, address indexed spender, uint256 value); 
 } 
 //2
 
 //3
-// Contract declaration implements the ERC-20 interface
+// Contract implements ERC-20 standard interface
 contract myToken is ERC20Interface {
 
-    // Token symbol
+    // Token symbol (short identifier)
     string public symbol = "ALX"; 
 
     // Token name
     string public name = "Alex Token"; 
 
-    // Token divisibility
+    // Number of decimal places the token can be divided into
     uint8 public decimals = 18; 
 
-    // Stores total number of tokens
+    // Stores the total supply of the token
     uint public _totalSupply; 
 
-    // Address that deploys the contract and initially receives all tokens
+    // Owner of the token (deployer)
     address public tokenOwner; 
 
-    // Tracks how many tokens each address owns
+    // Tracks balances of all addresses
     mapping(address => uint) private _balances; 
 
-    // Tracks how many tokens an owner allows a spender to use
+    // Tracks allowances of spenders per owner
     mapping(address => mapping(address => uint256)) private _allowances; 
 //3
 
 //4
-// Runs once on deployment
+// Constructor runs once when contract is deployed
 constructor() public {
-    tokenOwner = msg.sender; 
+    tokenOwner = msg.sender; // Deployer becomes token owner
 
-    // Mint exactly 200 tokens
+    // Mint exactly 200 tokens (considering decimals)
     _totalSupply = 200 * 10**uint(decimals); 
 
-    // Assign all tokens to the deployer
+    // Assign all tokens to deployer
     _balances[tokenOwner] = _totalSupply; 
+
+    // Emit transfer event from 0x0 to owner to indicate minting
     emit Transfer(address(0), tokenOwner, _totalSupply); 
 }
 //4
 
 //5
-// Various functions
+// ERC-20 functions implemented as external override to match the interface
 
-// Returns the total number of tokens in existence
-function totalSupply() public view override returns (uint256) {
+// Returns total supply of tokens
+function totalSupply() external view override returns (uint256) {
     return _totalSupply; 
 }
 
-// Allows anyone to check a wallet’s token balance
-function balanceOf(address account) public view override returns (uint256) {
+// Returns token balance of a specific address
+function balanceOf(address account) external view override returns (uint256) {
     return _balances[account]; 
 }
 
-// Returns how many tokens an owner allowed a spender to use
-function allowance(address owner, address spender) public view override returns (uint256) {
+// Returns the remaining number of tokens that a spender can spend from an owner
+function allowance(address owner, address spender) external view override returns (uint256) {
     return _allowances[owner][spender]; 
 }
 
-// Transfers tokens from the sender to another address
-function transfer(address recipient, uint256 amount) public override returns (bool) {
+// Transfers tokens from sender to recipient
+function transfer(address recipient, uint256 amount) external override returns (bool) {
     require(_balances[msg.sender] >= amount, "Insufficient balance"); 
     _balances[msg.sender] -= amount; 
     _balances[recipient] += amount; 
@@ -95,15 +102,16 @@ function transfer(address recipient, uint256 amount) public override returns (bo
     return true; 
 }
 
-// Approves a spender to transfer tokens on behalf of the owner
-function approve(address spender, uint256 amount) public override returns (bool) {
+// Approves a spender to transfer a specific amount from sender's balance
+function approve(address spender, uint256 amount) external override returns (bool) {
     _allowances[msg.sender][spender] = amount; 
     emit Approval(msg.sender, spender, amount); 
     return true; 
 }
+
 //6
-// Allows a spender to transfer tokens on behalf of another user
-function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
+// Transfers tokens on behalf of an owner using allowance
+function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
     require(_balances[sender] >= amount, "Insufficient balance"); 
     require(_allowances[sender][msg.sender] >= amount, "Allowance exceeded"); 
 
@@ -111,9 +119,10 @@ function transferFrom(address sender, address recipient, uint256 amount) public 
     _balances[recipient] += amount; 
     _allowances[sender][msg.sender] -= amount; 
 
+    // Emit events for transfer and updated allowance
     emit Transfer(sender, recipient, amount); 
     emit Approval(sender, msg.sender, _allowances[sender][msg.sender]); 
     return true; 
 }
-//6 
-}
+//6
+} 
