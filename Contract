@@ -1,133 +1,119 @@
 // SPDX-License-Identifier: GPL-3.0
 
 //1
-//license and version 
+// License and Solidity version
 pragma solidity ^0.6.6; 
-//1 
-
-
-
+//1
 
 //2
-//ERC-20 interface defines the functions , ensures can interact with wallet 
- interface ERC20Interface { 
+// ERC-20 interface defines the required functions
+// This ensures the token can interact with wallets and other contracts
+interface ERC20Interface {
+    // Define total token supply
+    function totalSupply() external view returns (uint256); 
+    // Account balances
+    function balanceOf(address account) external view returns (uint256); 
+    // Spending allowances
+    function allowance(address owner, address spender) external view returns (uint256); 
+    // Direct token transfer
+    function transfer(address recipient, uint256 amount) external returns (bool); 
+    // Approve a spender to spend tokens
+    function approve(address spender, uint256 amount) external returns (bool); 
+    // Transfer tokens on behalf of another address
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool); 
 
-    //define Total token supply, Account balances, Spending allowances, Direct 
-    //and delegated token transfers
-   function totalSupply() external view returns (uint256); 
-   function balanceOf(address account) external view returns (uint256); 
-   function allowance(address owner, address spender) external view returns (uint256); 
-   function transfer(address recipient, uint256 amount) external returns (bool); 
-   function approve(address spender, uint256 amount) external returns (bool); 
-   function transferFrom(address sender, address recipient, uint256 amount) external returns (bool); 
- 
- //events allow transactions to be tracked on Etherscan
-  event Transfer(address indexed from, address indexed to, uint256 value); 
-  event Approval(address indexed owner, address indexed spender, uint256 value); 
+    // Events allow transactions to be tracked on Etherscan
+    event Transfer(address indexed from, address indexed to, uint256 value); 
+    event Approval(address indexed owner, address indexed spender, uint256 value); 
 } 
-//2 
+//2
 
+//3
+// Contract declaration implements the ERC-20 interface
+contract myToken is ERC20Interface {
 
+    // Token symbol
+    string public symbol = "ALX"; 
 
+    // Token name
+    string public name = "Alex Token"; 
 
+    // Token divisibility
+    uint8 public decimals = 18; 
 
+    // Stores total number of tokens
+    uint public _totalSupply; 
 
-//3 
-//contract declaration implements the ERC-20 interface
-contract myToken is ERC20Interface { 
-     
-    //symbol 
-	string public symbol = "ALX"; 
+    // Address that deploys the contract and initially receives all tokens
+    address public tokenOwner; 
 
-    //token name 
-	string public name = "Alex Token"; 
+    // Tracks how many tokens each address owns
+    mapping(address => uint) private _balances; 
 
-    //token divisibility
-	uint8 public decimals = 18; 
+    // Tracks how many tokens an owner allows a spender to use
+    mapping(address => mapping(address => uint256)) private _allowances; 
+//3
 
-    //stores fixed number of supply 
-	uint public _totalSupply; 
+//4
+// Runs once on deployment
+constructor() public {
+    tokenOwner = msg.sender; 
 
-    //address that deploys the contract and initially receives all tokens
-	address public tokenOwner; 
- 
+    // Mint exactly 200 tokens
+    _totalSupply = 200 * 10**uint(decimals); 
 
-    //Tracks how many tokens each address owns
-	mapping(address => uint) private _balances; 
-    //Tracks how many tokens an owner allows a spender to use
-	mapping(address => mapping(address => uint256)) private _allowances; 
- //3 
+    // Assign all tokens to the deployer
+    _balances[tokenOwner] = _totalSupply; 
+    emit Transfer(address(0), tokenOwner, _totalSupply); 
+}
+//4
 
+//5
+// Various functions
 
+// Returns the total number of tokens in existence
+function totalSupply() public view override returns (uint256) {
+    return _totalSupply; 
+}
 
-//4 
-//Runs Once on Deployment
-	constructor() public { 
-	 tokenOwner = msg.sender; 
+// Allows anyone to check a wallet’s token balance
+function balanceOf(address account) public view override returns (uint256) {
+    return _balances[account]; 
+}
 
-     //Minting the Tokens
-     //Exactly 200 tokens are created
-	 _totalSupply = 200 * 10**uint(decimals); 
+// Returns how many tokens an owner allowed a spender to use
+function allowance(address owner, address spender) public view override returns (uint256) {
+    return _allowances[owner][spender]; 
+}
 
-     //All tokens are assigned to the deployer
-	 _balances[tokenOwner] = _totalSupply; 
-	 emit Transfer(address(0), tokenOwner, _totalSupply); 
-	} 
-//4 
+// Transfers tokens from the sender to another address
+function transfer(address recipient, uint256 amount) public override returns (bool) {
+    require(_balances[msg.sender] >= amount, "Insufficient balance"); 
+    _balances[msg.sender] -= amount; 
+    _balances[recipient] += amount; 
+    emit Transfer(msg.sender, recipient, amount); 
+    return true; 
+}
 
+// Approves a spender to transfer tokens on behalf of the owner
+function approve(address spender, uint256 amount) public override returns (bool) {
+    _allowances[msg.sender][spender] = amount; 
+    emit Approval(msg.sender, spender, amount); 
+    return true; 
+}
+//6
+// Allows a spender to transfer tokens on behalf of another user
+function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
+    require(_balances[sender] >= amount, "Insufficient balance"); 
+    require(_allowances[sender][msg.sender] >= amount, "Allowance exceeded"); 
 
+    _balances[sender] -= amount; 
+    _balances[recipient] += amount; 
+    _allowances[sender][msg.sender] -= amount; 
 
-
-//5 
-//various functions 
-    //Total Supply Function Returns the total number of tokens in existence
-	function totalSupply() public view override returns (uint256) { 
-	 return _totalSupply - _balances[address(0)]; 
-	} 
-
-	//Balance Query Allows anyone to check a wallet’s token balance
-	function balanceOf(address account) public view override returns (uint256) { 
-	 return _balances[account]; 
-	} 
- 
-	function allowance(address owner, address spender) public view virtual override returns 
-	(uint256) { 
-	 return _allowances[owner][spender]; 
-	} 
-    
-    //Transfers tokens from the sender to another address
-	function transfer(address recipient, uint256 amount) public virtual override returns (bool) 
-	{ 
-	 address sender = msg.sender; 
-	 
-	 _balances[sender] = _balances[sender] - amount; 
-	 _balances[recipient] = _balances[recipient] + amount; 
-	 emit Transfer(sender, recipient, amount); 
-	 return true; 
-	} 
-
-	function approve(address spender, uint256 amount) public virtual override returns (bool) { 
-
-	address sender = msg.sender; 
-	 
-	 _allowances[sender][spender] = amount; 
-	 emit Approval(sender, spender, amount); 
-	 return true; 
-	} 
- 
-
+    emit Transfer(sender, recipient, amount); 
+    emit Approval(sender, msg.sender, _allowances[sender][msg.sender]); 
+    return true; 
+}
 //6 
-//used when a spender transfers tokens on behalf of another user
-	function transferFrom(address sender, address recipient, uint256 amount) public virtual 
-override returns (bool) { 
- 
-	 _balances[sender] = _balances[sender] - amount; 
-	 _balances[recipient] = _balances[recipient] + amount; 
-	 emit Transfer(sender, recipient, amount); 
-	 
-	 _allowances[sender][recipient] = amount; 
-	 emit Approval(sender, recipient, amount); 
-	 return true; 
-	} 
-} 
-//6 
+}
